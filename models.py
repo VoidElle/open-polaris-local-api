@@ -5,7 +5,7 @@ Supports both local TCP (snake_case) and cloud API (PascalCase) response formats
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Optional
 
 # Error bitmask definitions from APK R.array.cu_errors / R.array.zone_errors.
 # Index = bit position (LSB = bit 0). Empty strings = undefined/reserved bits.
@@ -37,7 +37,7 @@ def _decode_error_bitmask(mask: int, messages: tuple[str, ...]) -> list[str]:
     return [msg for i, msg in enumerate(messages) if (mask >> i) & 1 and msg]
 
 
-def _parse_temp(value: Any) -> float | None:
+def _parse_temp(value: Any) -> Optional[float]:
     """Parse temperature from API/local response.
 
     Values >= 100 are integer-encoded (e.g. 195 = 19.5°C).
@@ -90,8 +90,8 @@ class PolarisZone:
 
     zone_id: int = 0
     name: str = "Unknown"
-    current_temp: float | None = None  # °C
-    set_temp: float | None = None  # °C
+    current_temp: Optional[float] = None  # °C
+    set_temp: Optional[float] = None  # °C
     is_off: bool = False
     is_cooling: bool = False
     fancoil: int = -1
@@ -102,8 +102,8 @@ class PolarisZone:
     man_crono: int = 0
     is_crono_mode: bool = False
     is_master: bool = False
-    humidity: float | None = None
-    set_humidity: float | None = None
+    humidity: Optional[float] = None
+    set_humidity: Optional[float] = None
     num_error: int = 0
     c_badge: Any = None
     c_win: Any = None
@@ -132,8 +132,8 @@ class PolarisZone:
         # Local protocol field names come from Constants.JSON_OFFLINE_COMMAND_* in the APK.
         # Cloud/server field names (PascalCase) are kept as fallbacks for backward compat.
         return cls(
-            zone_id=_parse_int(data.get("id_zona", data.get("nr", data.get("ZoneId", 0)))),
-            name=str(data.get("name", data.get("n", data.get("Name", "Unknown")))),
+            zone_id=_parse_int(data.get("id_zona") or data.get("nr") or data.get("ZoneId") or 0),
+            name=str(data.get("name") or data.get("n") or data.get("Name") or "Unknown"),
             # local full: "t" (JSON_OFFLINE_COMMAND_TEMP), ridotto: "co", cloud: "Temp"
             current_temp=_parse_temp(data.get("t", data.get("co", data.get("Temp")))),
             # local: "t_set" (JSON_OFFLINE_COMMAND_TEMPSET), cloud: "SetTemp"
@@ -237,14 +237,14 @@ class PolarisDevice:
             op_mode = 0
 
         return cls(
-            serial=str(data.get("serial", data.get("Serial", ""))),
-            name=str(data.get("name", data.get("Name", "Unknown"))),
-            fw_ver=str(data.get("fw_ver", data.get("FWVer", ""))),
-            ip=str(data.get("ip", data.get("IP", ""))),
+            serial=str(data.get("serial") or data.get("Serial") or ""),
+            name=str(data.get("name") or data.get("Name") or "Unknown"),
+            fw_ver=str(data.get("fw_ver") or data.get("FWVer") or ""),
+            ip=str(data.get("ip") or data.get("IP") or ""),
             is_off=is_off,
             is_cooling=is_cooling,
             operating_mode=op_mode,
-            # t_can transmitted as integer * 10; divide by 10 to restore °C.
+            # t_can transmit as integer * 10; divide by 10 to restore °C.
             # ridotto: "tc", full: "t_can", cloud: "TempCan"
             t_can=_parse_int(
                 data.get("t_can", data.get("tc", data.get("TempCan", 0)))

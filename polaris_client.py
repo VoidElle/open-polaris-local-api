@@ -15,9 +15,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Any
+from typing import Any, Optional
 
-from .models import PolarisDevice, PolarisZone
+from models import PolarisDevice, PolarisZone
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class PolarisLocalClient:
         self,
         ip: str,
         pin: str,
-        device_id: str | None = None,
+        device_id: Optional[str] = None,
         port: int = 1235,
         timeout: float = 5.0,
         retry_attempts: int = 2,
@@ -63,7 +63,7 @@ class PolarisLocalClient:
         self._connected = False
 
         # Cached state
-        self._device: PolarisDevice | None = None
+        self._device: Optional[PolarisDevice] = None
         self._zones: list[PolarisZone] = []
 
     # ─── Properties ─────────────────────────────────────────────────
@@ -73,7 +73,7 @@ class PolarisLocalClient:
         return self._connected
 
     @property
-    def device(self) -> PolarisDevice | None:
+    def device(self) -> Optional[PolarisDevice]:
         return self._device
 
     @property
@@ -140,7 +140,8 @@ class PolarisLocalClient:
         """Full refresh: fetch status and parse device + zones."""
         raw = await self.get_status()
 
-        self._device = PolarisDevice.from_local(raw)
+        device = PolarisDevice.from_local(raw)
+        self._device = device
         self._connected = True
 
         # local: "zone" (JSON_OFFLINE_COMMAND_ZONE), cloud: "Zones" (JSON_CU_ZONE)
@@ -154,12 +155,12 @@ class PolarisLocalClient:
         _LOGGER.debug(
             "[%s] Polaris update: on=%s, mode=%s, zones=%d",
             self.device_id,
-            self._device.is_on,
-            self._device.cooling_mode_name,
+            device.is_on,
+            device.cooling_mode_name,
             len(self._zones),
         )
 
-        return self._device, self._zones
+        return device, self._zones
 
     # ─── Public API: Write (zone) ───────────────────────────────────
 
@@ -167,11 +168,11 @@ class PolarisLocalClient:
         self,
         zone: PolarisZone,
         *,
-        is_off: bool | None = None,
-        set_temp: float | None = None,
-        is_crono: bool | None = None,
-        fancoil_set: int | None = None,
-        serranda_set: int | None = None,
+        is_off: Optional[bool] = None,
+        set_temp: Optional[float] = None,
+        is_crono: Optional[bool] = None,
+        fancoil_set: Optional[int] = None,
+        serranda_set: Optional[int] = None,
     ) -> None:
         """Update a zone's settings.
 
@@ -239,9 +240,9 @@ class PolarisLocalClient:
     async def update_cu(
         self,
         *,
-        is_off: bool | None = None,
-        is_cooling: bool | None = None,
-        operating_mode: int | None = None,
+        is_off: Optional[bool] = None,
+        is_cooling: Optional[bool] = None,
+        operating_mode: Optional[int] = None,
     ) -> None:
         """Update CU (device-level) settings.
 
@@ -250,9 +251,9 @@ class PolarisLocalClient:
          "t_can":<°C*10>,"f_inv":...,"f_est":...}
         """
         dev = self._device
-        eff_is_off = is_off if is_off is not None else (dev.is_off if dev else False)
-        eff_is_cooling = is_cooling if is_cooling is not None else (dev.is_cooling if dev else False)
-        eff_op_mode = operating_mode if operating_mode is not None else (dev.operating_mode if dev else 0)
+        eff_is_off = is_off if is_off is not None else (dev.is_off if dev is not None else False)
+        eff_is_cooling = is_cooling if is_cooling is not None else (dev.is_cooling if dev is not None else False)
+        eff_op_mode = operating_mode if operating_mode is not None else (dev.operating_mode if dev is not None else 0)
 
         cmd: dict[str, Any] = {
             "c": "upd_cu",
@@ -304,7 +305,7 @@ class PolarisLocalClient:
     async def _send_command_with_retry(
         self,
         cmd: dict[str, Any],
-    ) -> dict[str, Any] | None:
+    ) -> Optional[dict[str, Any]]:
         """Send a command with retries, returning the parsed response or None."""
         for attempt in range(1, self.retry_attempts + 1):
             if attempt > 1:
@@ -325,13 +326,13 @@ class PolarisLocalClient:
                         "[%s] Timeout on attempt %d for '%s'",
                         self.device_id, attempt, cmd.get("c"),
                     )
-            except Exception as err:
+            except (OSError, json.JSONDecodeError) as err:
                 if self.verbose:
                     _LOGGER.debug("[%s] Error on attempt %d: %s", self.device_id, attempt, err)
 
         return None
 
-    async def _send_and_receive(self, cmd: dict[str, Any]) -> dict[str, Any] | None:
+    async def _send_and_receive(self, cmd: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Open a TCP connection, send the command JSON, read and return the response.
 
         Mirrors MySocket.sendAndReceive: each call opens and closes its own socket.
@@ -369,7 +370,7 @@ class PolarisLocalClient:
             writer.close()
             try:
                 await writer.wait_closed()
-            except Exception:
+            except OSError:
                 pass
 
 
