@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "open-polaris-local-api"
+version = "1.0.0"
+description = "Async Python library for Tecnosystemi Polaris 5 HVAC Control Unit IoT devices"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+keywords = ["polaris", "hvac", "iot", "asyncio", "home-assistant"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Framework :: AsyncIO",
+]
+
+[tool.setuptools]
+py-modules = [
+    "polaris_client",
+    "models",
+]
