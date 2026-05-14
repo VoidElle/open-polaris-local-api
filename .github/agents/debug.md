@@ -1,7 +1,7 @@
 # Debug Agent — open-polaris-local-api
 
 ## Purpose
-Diagnose issues in the async TCP communication stack of this Polaris 5 CU device library.
+Diagnose issues in the async TCP communication stack of this Polaris 5X CU device library.
 
 ## Common Failure Modes
 

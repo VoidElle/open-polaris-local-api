@@ -1,4 +1,4 @@
-"""Local TCP client for Tecnosystemi Polaris 5 (CU) devices.
+"""Local TCP client for Tecnosystemi Polaris 5X (CU) devices.
 
 Communicates directly with the device over TCP port 1235 — the same
 transport used by the official Tecnosystemi Android app (MySocket class).
@@ -25,7 +25,7 @@ _BUFFER_SIZE = 4096
 
 
 class PolarisLocalClient:
-    """Async local TCP client for Polaris 5 CU devices."""
+    """Async local TCP client for Polaris 5X CU devices."""
 
     def __init__(
         self,

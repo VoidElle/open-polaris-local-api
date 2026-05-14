@@ -1,4 +1,4 @@
-"""Data models for Polaris 5 devices.
+"""Data models for Polaris 5X devices.
 
 Supports both local TCP (snake_case) and cloud API (PascalCase) response formats.
 """

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "open-polaris-local-api"
 version = "1.0.0"
-description = "Async Python library for Tecnosystemi Polaris 5 HVAC Control Unit IoT devices"
+description = "Async Python library for Tecnosystemi Polaris 5X HVAC Control Unit IoT devices"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11"

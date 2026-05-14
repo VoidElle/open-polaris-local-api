@@ -1,7 +1,7 @@
 # Coding Agent — open-polaris-local-api
 
 ## Project Overview
-Async Python library (asyncio, Python 3.11+) for controlling Tecnosystemi Polaris 5 HVAC Control Unit (CU) devices over local TCP. Used as a local API client, commonly integrated with Home Assistant.
+Async Python library (asyncio, Python 3.11+) for controlling Tecnosystemi Polaris 5X HVAC Control Unit (CU) devices over local TCP. Used as a local API client, commonly integrated with Home Assistant.
 
 ## Architecture
 - **`PolarisLocalClient`** (`polaris_client.py`) — main public API. One instance per device.

@@ -1,6 +1,6 @@
 # 🌡️ Open Polaris Local API
 
-> *Asynchronous Python library for Tecnosystemi Polaris 5 HVAC Control Unit devices*
+> *Asynchronous Python library for Tecnosystemi Polaris 5X HVAC Control Unit devices*
 
 [![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
