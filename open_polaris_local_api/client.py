@@ -17,7 +17,7 @@ import json
 import logging
 from typing import Any, Optional
 
-from models import PolarisDevice, PolarisZone
+from .models import PolarisDevice, PolarisZone
 
 _LOGGER = logging.getLogger(__name__)
 

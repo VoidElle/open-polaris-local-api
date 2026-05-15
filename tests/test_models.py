@@ -1,7 +1,7 @@
 """Tests for models.py — parse helpers, PolarisZone, PolarisDevice."""
 import unittest
 
-from models import (
+from open_polaris_local_api.models import (
     PolarisDevice,
     PolarisZone,
     _decode_error_bitmask,

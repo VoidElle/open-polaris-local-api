@@ -4,8 +4,8 @@ import json
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from polaris_client import PolarisApiError, PolarisLocalClient
-from models import PolarisDevice, PolarisZone
+from open_polaris_local_api import PolarisApiError, PolarisLocalClient
+from open_polaris_local_api import PolarisDevice, PolarisZone
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────

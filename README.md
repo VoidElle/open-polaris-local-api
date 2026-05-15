@@ -4,7 +4,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.0-orange.svg)](https://github.com/VoidElle/open-polaris-local-api)
+[![Version](https://img.shields.io/badge/version-1.0.1-orange.svg)](https://github.com/VoidElle/open-polaris-local-api)
 
 **[Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Examples](#-examples)**
 
@@ -43,7 +43,7 @@
 Install directly from a GitHub tag:
 
 ```bash
-pip install "open-polaris-local-api @ git+https://github.com/VoidElle/open-polaris-local-api.git@v1.0.0"
+pip install "open-polaris-local-api @ git+https://github.com/VoidElle/open-polaris-local-api.git@v1.0.1"
 ```
 
 ### Home Assistant integration
@@ -52,14 +52,15 @@ Add to your integration's `manifest.json`:
 
 ```json
 "requirements": [
-  "open-polaris-local-api @ git+https://github.com/VoidElle/open-polaris-local-api.git@v1.0.0"
+  "open-polaris-local-api @ git+https://github.com/VoidElle/open-polaris-local-api.git@v1.0.1"
 ]
 ```
 
 ### Manual
 
 1. Clone this repository into your project
-2. Import `PolarisLocalClient` and other relevant classes
+2. Ensure the `open_polaris_local_api/` folder is on your Python path
+3. Import with `from open_polaris_local_api import PolarisLocalClient`
 
 ---
 
@@ -69,7 +70,7 @@ Add to your integration's `manifest.json`:
 
 ```python
 import asyncio
-from polaris_client import PolarisLocalClient
+from open_polaris_local_api import PolarisLocalClient
 
 async def main():
     client = PolarisLocalClient(
@@ -330,7 +331,7 @@ Both models accept both **local TCP** (snake_case, ridotto, full) and **cloud AP
 Raised on communication failures:
 
 ```python
-from polaris_client import PolarisApiError
+from open_polaris_local_api import PolarisApiError
 
 try:
     async with PolarisLocalClient(ip="192.168.1.100", pin="1234") as client:
@@ -360,9 +361,10 @@ for zone in zones:
 
 ```
 open-polaris-local-api/
-├── __init__.py          # Package exports: PolarisLocalClient, PolarisApiError, PolarisDevice, PolarisZone
-├── polaris_client.py    # Main client class + PolarisApiError
-└── models.py            # PolarisDevice, PolarisZone dataclasses + parsing helpers
+└── open_polaris_local_api/
+    ├── __init__.py    # exports: PolarisLocalClient, PolarisApiError, PolarisDevice, PolarisZone
+    ├── client.py      # PolarisLocalClient, PolarisApiError
+    └── models.py      # PolarisDevice, PolarisZone dataclasses + parsing helpers
 ```
 
 ---
