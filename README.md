@@ -4,7 +4,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.2.0-orange.svg)](https://github.com/VoidElle/open-polaris-local-api)
+[![Version](https://img.shields.io/github/v/release/VoidElle/open-polaris-local-api?label=version)](https://github.com/VoidElle/open-polaris-local-api/releases)
 
 **[Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Examples](#-examples) • [Scripts](#️-scripts) • [Testing](#-testing)**
 
