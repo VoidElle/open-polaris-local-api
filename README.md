@@ -4,9 +4,9 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.1.0-orange.svg)](https://github.com/VoidElle/open-polaris-local-api)
+[![Version](https://img.shields.io/badge/version-1.2.0-orange.svg)](https://github.com/VoidElle/open-polaris-local-api)
 
-**[Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Examples](#-examples)**
+**[Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Examples](#-examples) • [Scripts](#️-scripts) • [Testing](#-testing)**
 
 ---
 
@@ -48,7 +48,7 @@
 Install directly from a GitHub tag:
 
 ```bash
-pip install "open-polaris-local-api @ git+https://github.com/VoidElle/open-polaris-local-api.git@v1.1.0"
+pip install "open-polaris-local-api @ git+https://github.com/VoidElle/open-polaris-local-api.git@v1.2.0"
 ```
 
 ### Home Assistant integration
@@ -57,7 +57,7 @@ Add to your integration's `manifest.json`:
 
 ```json
 "requirements": [
-  "open-polaris-local-api @ git+https://github.com/VoidElle/open-polaris-local-api.git@v1.1.0"
+  "open-polaris-local-api @ git+https://github.com/VoidElle/open-polaris-local-api.git@v1.2.0"
 ]
 ```
 
@@ -413,11 +413,65 @@ for zone in zones:
 
 ```
 open-polaris-local-api/
-└── open_polaris_local_api/
-    ├── __init__.py              # exports: PolarisLocalClient, PolarisApiError, PolarisDevice, PolarisZone, PolarisAutoDiscovery
-    ├── client.py                # PolarisLocalClient, PolarisApiError
-    ├── models.py                # PolarisDevice, PolarisZone dataclasses + parsing helpers
-    └── polaris_auto_discovery.py  # PolarisAutoDiscovery — subnet scanner
+├── scripts/
+│   ├── bump_version.sh              # Bump version across all files
+│   └── run_tests.sh                 # Run the full test suite
+├── examples/
+│   ├── README.md                    # Examples documentation
+│   ├── basic_control.py             # Connect, read status, control a single device
+│   ├── auto_discovery.py            # Discover devices then read their status
+│   ├── multi_device.py              # Concurrent control of multiple devices
+│   └── monitoring.py                # Continuous polling with error alerts
+├── open_polaris_local_api/
+│   ├── __init__.py                  # exports: PolarisLocalClient, PolarisApiError, PolarisDevice, PolarisZone, PolarisAutoDiscovery
+│   ├── client.py                    # PolarisLocalClient, PolarisApiError
+│   ├── models.py                    # PolarisDevice, PolarisZone dataclasses + parsing helpers
+│   └── polaris_auto_discovery.py    # PolarisAutoDiscovery — subnet scanner
+└── tests/
+    ├── test_models.py
+    ├── test_polaris_client.py
+    └── test_polaris_auto_discovery.py
+```
+
+---
+
+## 💡 Examples
+
+Ready-to-run example scripts are available in the [`examples/`](examples/) directory.
+See [`examples/README.md`](examples/README.md) for full documentation and usage instructions.
+
+---
+
+## 🛠️ Scripts
+
+Utility scripts live in the [`scripts/`](scripts/) directory and must be run from the repo root.
+
+### `scripts/bump_version.sh`
+
+Keeps all version references in sync across `pyproject.toml` and `README.md` in one command.
+
+```bash
+./scripts/bump_version.sh patch     # 1.0.1 → 1.0.2
+./scripts/bump_version.sh minor     # 1.0.1 → 1.1.0
+./scripts/bump_version.sh major     # 1.0.1 → 2.0.0
+./scripts/bump_version.sh 1.2.3     # set an explicit version
+./scripts/bump_version.sh           # interactive menu
+```
+
+### `scripts/run_tests.sh`
+
+Runs the full unit test suite with verbose output.
+
+```bash
+./scripts/run_tests.sh
+```
+
+---
+
+## 🧪 Testing
+
+```bash
+./scripts/run_tests.sh
 ```
 
 ---

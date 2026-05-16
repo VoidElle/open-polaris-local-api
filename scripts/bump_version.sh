@@ -6,6 +6,7 @@
 #   ./bump_version.sh <x.y.z>              # set an explicit version
 
 set -euo pipefail
+cd "$(dirname "$0")/.."
 
 PYPROJECT="pyproject.toml"
 README="README.md"
