@@ -71,8 +71,12 @@ echo "Bumping version: $CURRENT → $NEW"
 sed -i '' "s/^version = \"${CURRENT}\"/version = \"${NEW}\"/" "$PYPROJECT"
 echo "  pyproject.toml  $CURRENT → $NEW"
 
-# --- update README.md badge ---
+# --- update README.md version badge ---
 sed -i '' "s|/badge/version-${CURRENT}-orange|/badge/version-${NEW}-orange|" "$README"
-echo "  README.md       $CURRENT → $NEW"
+echo "  README.md badge  $CURRENT → $NEW"
+
+# --- update README.md git install URLs (@vX.Y.Z) ---
+sed -i '' "s|@v${CURRENT}|@v${NEW}|g" "$README"
+echo "  README.md URLs   $CURRENT → $NEW"
 
 echo "Done."
