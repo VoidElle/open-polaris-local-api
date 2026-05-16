@@ -4,7 +4,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.1-orange.svg)](https://github.com/VoidElle/open-polaris-local-api)
+[![Version](https://img.shields.io/badge/version-1.1.0-orange.svg)](https://github.com/VoidElle/open-polaris-local-api)
 
 **[Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Examples](#-examples)**
 
@@ -29,6 +29,11 @@
 - Comprehensive logging with optional verbose mode
 - Supports both local TCP (snake_case) and cloud API (PascalCase) response formats
 
+### 🔍 **Auto-Discovery**
+- **Subnet scan** — finds all Polaris devices on your LAN without knowing their IPs
+- Concurrent TCP probing with configurable timeout and concurrency
+- Identifies devices by validating the Polaris protocol response
+
 ### 🎛️ **Full Control**
 - CU-level: power, cooling mode, operating mode
 - Zone-level: temperature setpoint, on/off, chrono mode, fan speed, shutter
@@ -43,7 +48,7 @@
 Install directly from a GitHub tag:
 
 ```bash
-pip install "open-polaris-local-api @ git+https://github.com/VoidElle/open-polaris-local-api.git@v1.0.1"
+pip install "open-polaris-local-api @ git+https://github.com/VoidElle/open-polaris-local-api.git@v1.1.0"
 ```
 
 ### Home Assistant integration
@@ -52,7 +57,7 @@ Add to your integration's `manifest.json`:
 
 ```json
 "requirements": [
-  "open-polaris-local-api @ git+https://github.com/VoidElle/open-polaris-local-api.git@v1.0.1"
+  "open-polaris-local-api @ git+https://github.com/VoidElle/open-polaris-local-api.git@v1.1.0"
 ]
 ```
 
@@ -65,6 +70,22 @@ Add to your integration's `manifest.json`:
 ---
 
 ## 🚀 Quick Start
+
+### Auto-Discovery
+
+Find all Polaris devices on your network without knowing their IPs:
+
+```python
+import asyncio
+from open_polaris_local_api import PolarisAutoDiscovery
+
+async def main():
+    ips = await PolarisAutoDiscovery.discover(pin="1234", subnet="192.168.1.0/24")
+    print(f"Found {len(ips)} device(s): {ips}")
+    # ["192.168.1.42"]
+
+asyncio.run(main())
+```
 
 ### Single Device
 
@@ -135,6 +156,7 @@ async def control_cu():
 
 ## 📚 Documentation
 
+- [Auto-Discovery](#-auto-discovery)
 - [Configuration](#️-configuration)
 - [Connection Management](#-connection-management)
 - [Device Control (CU)](#️-device-control-cu)
@@ -142,6 +164,36 @@ async def control_cu():
 - [Data Models](#️-data-models)
 - [Error Handling](#-error-handling)
 - [Library Structure](#-library-structure)
+
+---
+
+## 🔍 Auto-Discovery
+
+Scans every host in the given subnet over TCP port 1235 and returns the IPs
+of all responding Polaris devices. No prior knowledge of device IPs required.
+
+```python
+from open_polaris_local_api import PolarisAutoDiscovery
+
+ips = await PolarisAutoDiscovery.discover(pin="1234", subnet="192.168.1.0/24")
+```
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|:----:|:-------:|-------------|
+| **`pin`** ⭐ | `str` | *required* | 🔐 Device PIN used for the probe |
+| **`subnet`** ⭐ | `str` | *required* | 🌐 CIDR subnet to scan (e.g. `"192.168.1.0/24"`) |
+| `port` | `int` | `1235` | 📡 TCP port to probe |
+| `probe_timeout` | `float` | `1.5` | ⏱️ Per-host timeout in seconds |
+| `max_concurrent` | `int` | `50` | ⚡ Maximum simultaneous TCP probes |
+| `verbose` | `bool` | `False` | 📢 Enable debug logging |
+
+### Notes
+
+- A 254-host `/24` scan with defaults completes in roughly **8 seconds**
+- Devices running older firmware (no `stato_r` support) are still discovered — a `res=4` reply is enough to confirm a Polaris device
+- Tune `probe_timeout` upward if devices are on a slow or congested network
 
 ---
 
@@ -362,9 +414,10 @@ for zone in zones:
 ```
 open-polaris-local-api/
 └── open_polaris_local_api/
-    ├── __init__.py    # exports: PolarisLocalClient, PolarisApiError, PolarisDevice, PolarisZone
-    ├── client.py      # PolarisLocalClient, PolarisApiError
-    └── models.py      # PolarisDevice, PolarisZone dataclasses + parsing helpers
+    ├── __init__.py              # exports: PolarisLocalClient, PolarisApiError, PolarisDevice, PolarisZone, PolarisAutoDiscovery
+    ├── client.py                # PolarisLocalClient, PolarisApiError
+    ├── models.py                # PolarisDevice, PolarisZone dataclasses + parsing helpers
+    └── polaris_auto_discovery.py  # PolarisAutoDiscovery — subnet scanner
 ```
 
 ---
