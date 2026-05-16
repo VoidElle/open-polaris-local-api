@@ -10,6 +10,10 @@ Usage:
     python3 auto_discovery.py --subnet 192.168.1.0/24 --pin 1234 --timeout 3.0
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
 import asyncio
 import argparse
 

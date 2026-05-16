@@ -10,6 +10,10 @@ Usage:
     python3 multi_device.py --pin 1234 --ips 192.168.1.100 192.168.1.101
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
 import asyncio
 import argparse
 

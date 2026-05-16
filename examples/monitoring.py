@@ -10,6 +10,10 @@ Usage:
     python3 monitoring.py --ip 192.168.1.100 --pin 1234 --interval 10
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
 import asyncio
 import argparse
 from datetime import datetime
