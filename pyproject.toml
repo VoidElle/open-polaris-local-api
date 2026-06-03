@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "open-polaris-local-api"
-version = "1.2.0"
+version = "1.2.1"
 description = "Async Python library for Tecnosystemi Polaris 5X HVAC Control Unit IoT devices"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -18,6 +18,11 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Framework :: AsyncIO",
 ]
+
+[project.urls]
+Homepage = "https://github.com/VoidElle/open-polaris-local-api"
+Source = "https://github.com/VoidElle/open-polaris-local-api"
+"Bug Tracker" = "https://github.com/VoidElle/open-polaris-local-api/issues"
 
 [tool.setuptools]
 packages = ["open_polaris_local_api"]

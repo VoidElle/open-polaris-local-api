@@ -48,7 +48,7 @@
 Install directly from a GitHub tag:
 
 ```bash
-pip install "open-polaris-local-api @ git+https://github.com/VoidElle/open-polaris-local-api.git@v1.2.0"
+pip install "open-polaris-local-api @ git+https://github.com/VoidElle/open-polaris-local-api.git@v1.2.1"
 ```
 
 ### Home Assistant integration
@@ -57,7 +57,7 @@ Add to your integration's `manifest.json`:
 
 ```json
 "requirements": [
-  "open-polaris-local-api @ git+https://github.com/VoidElle/open-polaris-local-api.git@v1.2.0"
+  "open-polaris-local-api @ git+https://github.com/VoidElle/open-polaris-local-api.git@v1.2.1"
 ]
 ```
 
