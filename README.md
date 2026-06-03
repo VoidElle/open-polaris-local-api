@@ -5,6 +5,7 @@
 [![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Version](https://img.shields.io/github/v/release/VoidElle/open-polaris-local-api?label=version)](https://github.com/VoidElle/open-polaris-local-api/releases)
+[![PyPI](https://img.shields.io/pypi/v/open-polaris-local-api)](https://pypi.org/project/open-polaris-local-api/)
 
 **[Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Examples](#-examples) • [Scripts](#️-scripts) • [Testing](#-testing)**
 
@@ -45,10 +46,8 @@
 
 ### pip (recommended)
 
-Install directly from a GitHub tag:
-
 ```bash
-pip install "open-polaris-local-api @ git+https://github.com/VoidElle/open-polaris-local-api.git@v1.2.1"
+pip install open-polaris-local-api
 ```
 
 ### Home Assistant integration
@@ -57,7 +56,7 @@ Add to your integration's `manifest.json`:
 
 ```json
 "requirements": [
-  "open-polaris-local-api @ git+https://github.com/VoidElle/open-polaris-local-api.git@v1.2.1"
+  "open-polaris-local-api==1.2.0"
 ]
 ```
 
