@@ -72,8 +72,8 @@ echo "Bumping version: $CURRENT → $NEW"
 sed -i '' "s/^version = \"${CURRENT}\"/version = \"${NEW}\"/" "$PYPROJECT"
 echo "  pyproject.toml  $CURRENT → $NEW"
 
-# --- update README.md git install URLs (@vX.Y.Z) ---
-sed -i '' "s|@v${CURRENT}|@v${NEW}|g" "$README"
-echo "  README.md URLs   $CURRENT → $NEW"
+# --- update README.md Home Assistant integration version (==X.Y.Z) ---
+sed -i '' "s|==${CURRENT}\"|==${NEW}\"|g" "$README"
+echo "  README.md HA     $CURRENT → $NEW"
 
 echo "Done."

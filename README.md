@@ -6,6 +6,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Version](https://img.shields.io/github/v/release/VoidElle/open-polaris-local-api?label=version)](https://github.com/VoidElle/open-polaris-local-api/releases)
 [![PyPI](https://img.shields.io/pypi/v/open-polaris-local-api)](https://pypi.org/project/open-polaris-local-api/)
+[![Tests](https://github.com/VoidElle/open-polaris-local-api/actions/workflows/tests.yml/badge.svg)](https://github.com/VoidElle/open-polaris-local-api/actions/workflows/tests.yml)
 
 **[Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Examples](#-examples) • [Scripts](#️-scripts) • [Testing](#-testing)**
 
