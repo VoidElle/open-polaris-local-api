@@ -232,6 +232,7 @@ class PolarisLocalClient:
             _LOGGER.warning("[%s] No response for upd_zona (zone %d)", self.device_id, zone.zone_id)
 
         _LOGGER.info(
+            "[%s] Zone '%s' updated: is_off=%s, temp=%.1f°C",
             self.device_id, zone.name, effective_is_off, effective_temp,
         )
 
@@ -271,6 +272,7 @@ class PolarisLocalClient:
             _LOGGER.warning("[%s] No response for upd_cu", self.device_id)
 
         _LOGGER.info(
+            "[%s] CU '%s' updated: is_off=%s, is_cooling=%s, mode=%d",
             self.device_id,
             dev.name if dev else self.ip,
             eff_is_off, eff_is_cooling, eff_op_mode,
@@ -299,6 +301,67 @@ class PolarisLocalClient:
 
     async def turn_zone_off(self, zone: PolarisZone) -> None:
         await self.update_zone(zone, is_off=True)
+
+    async def get_zone_detail(self, zone_id: int) -> dict[str, Any]:
+        """Fetch detailed zone data via stato_zona.
+
+        Returns per-zone fields not present in stato/stato_r:
+        fan, fan_set, shu, shu_set, EV, EV_set, v (firmware), m (model).
+        """
+        cmd = {"c": "stato_zona", "pin": self.pin, "id_zona": zone_id}
+        response = await self._send_command_with_retry(cmd)
+        if response is None:
+            raise TimeoutError(f"No response for stato_zona (zone {zone_id})")
+        return response
+
+    async def fetch_all_zone_details(self) -> dict[int, dict[str, Any]]:
+        """Fetch stato_zona for all known zones.
+
+        Returns {zone_id: detail_dict}. Skips offline zones (is_off=True)
+        and adds a 1s delay between queries to avoid overwhelming the CU's
+        limited TCP stack.
+        """
+        details: dict[int, dict[str, Any]] = {}
+        for zone in self._zones:
+            if zone.is_off:
+                if self.verbose:
+                    _LOGGER.debug(
+                        "[%s] Skipping zone detail for '%s' (zone is off)",
+                        self.device_id, zone.name,
+                    )
+                continue
+            try:
+                await asyncio.sleep(1)
+                detail = await self.get_zone_detail(zone.zone_id)
+                details[zone.zone_id] = detail
+                zone.serranda = detail.get("shu", -1)
+                zone.serranda_set = detail.get("shu_set", -1)
+                zone.fancoil = detail.get("fan", -1)
+                zone.fancoil_set = detail.get("fan_set", -1)
+                if self.verbose:
+                    _LOGGER.debug(
+                        "[%s] Zone '%s' detail: shu=%s, shu_set=%s, fan=%s, fan_set=%s, fw=%s, model=%s",
+                        self.device_id, zone.name,
+                        zone.serranda, zone.serranda_set,
+                        zone.fancoil, zone.fancoil_set,
+                        detail.get("v", "?"), detail.get("m", "?"),
+                    )
+            except (TimeoutError, Exception) as err:
+                _LOGGER.warning(
+                    "[%s] Failed to get detail for zone %d: %s",
+                    self.device_id, zone.zone_id, err,
+                )
+        return details
+
+    async def set_zone_serranda(self, zone: PolarisZone, value: int) -> None:
+        """Set serranda (damper) position for a zone.
+
+        Args:
+            zone: The zone to update.
+            value: 0=Auto, 1=A1, 2=A2, 3=A3.
+        """
+        await self.update_zone(zone, serranda_set=value)
+        zone.serranda_set = value
 
     # ─── TCP transport ──────────────────────────────────────────────
 
