@@ -1,7 +1,7 @@
 # Report: Polaris app-docs extraction
 
 Date: 2026-11-02. Summary of how `docs/app/` was produced, what was spot-checked, and what remains open.
-Source: decompiled Tecnosystemi app (JADX), `open-pico-local-api/Export-Pico/sources/it/tecnosystemi/TS` (paths below are relative to it; `res/...` = `Export-Pico/resources/res/...`).
+Source: Tecnosystemi app (JADX export), `open-pico-local-api/Export-Pico/sources/it/tecnosystemi/TS` (paths below are relative to it; `res/...` = `Export-Pico/resources/res/...`).
 In the app, Polaris is the "ControlUnit" family: `ControlUnitActivity`, `ZoneActivity`, `CronoSetActivity`, `CronoSummaryActivity`, `BootloaderActivity`, `Model/ControlUnit.java`, `Model/Zona.java`.
 
 ## Output
@@ -12,7 +12,7 @@ In the app, Polaris is the "ControlUnit" family: `ControlUnitActivity`, `ZoneAct
 | [http-flows/](http-flows/README.md) | 7 | 357 | Cloud transport/auth, account, plants/devices, CU cloud runtime, firmware/push, quirks |
 | [diff-app-api.md](diff-app-api.md) | 1 | - | Verified app vs library diff scan (local + cloud) |
 
-Method: two Sonnet agents (local, cloud), each mirroring the structure of `open-pico-local-api/docs/app/`. Navigation through the codebase-memory index; the decompiled Java is indexed as folders only, so it was searched as text.
+Method: two Sonnet agents (local, cloud), each mirroring the structure of `open-pico-local-api/docs/app/`. Navigation through the codebase-memory index; the app Java is indexed as folders only, so it was searched as text.
 
 ## Spot-checks done on the source
 
@@ -57,7 +57,7 @@ Full verified list with severities: [diff-app-api.md](diff-app-api.md).
 - `OperatingModeCooling` values 0-3 not checked against the app.
 - Polaris branch of `SelectTypeDevActivity` inferred; only the PICO branch was read.
 - `MemorySize`, `WiFiVersion`: no reader found.
-- `GetCUState` field list comes from decompiled code only; not checked against a live backend.
+- `GetCUState` field list comes from app code only; not checked against a live backend.
 
 ## Caveats
 

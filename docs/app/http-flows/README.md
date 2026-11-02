@@ -1,4 +1,4 @@
-# Polaris 5X online (cloud) flows (decompiled Tecnosystemi app)
+# Polaris 5X online (cloud) flows (Tecnosystemi app)
 
 Map of the cloud flows for the Polaris 5X control unit ("ControlUnit" family in the app, `LVDV_Type 0` = `DEVICE_TYPE_PROAIR`, `Utils/Constants.java:50`) derived from `Export-Pico/sources/it/tecnosystemi/TS` (JADX, shared with the PICO analysis in the sibling `open-pico-local-api` repo).
 `file:line` references are relative to that folder; `res/...` = `Export-Pico/resources/res/...`. "(inferred)" = deduced, not read.

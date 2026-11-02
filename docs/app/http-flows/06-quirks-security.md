@@ -1,6 +1,6 @@
 # 06 - Quirks and security notes (Polaris)
 
-Observed in the decompiled app. Relevant if a client reimplements this API. PICO-shared auth/crypto items are condensed; see `open-pico-local-api/docs/app/http-flows/06-quirks-security.md` for the full list.
+Observed in the app. Relevant if a client reimplements this API. PICO-shared auth/crypto items are condensed; see `open-pico-local-api/docs/app/http-flows/06-quirks-security.md` for the full list.
 
 ## Auth and crypto (shared)
 - Basic password hard-coded `PwdProAir`; user = email after login, `UsrProAir` before (`Threads/WebClientDevWrapper.java:103-107`). Real auth is the `Token` header.

@@ -72,4 +72,4 @@ Request `{"c":"check_pin","pin":"<pin>"}` (`MySocket.java:308-314`). Reply: `res
 
 - Wire semantics of `wifi_sec` (only the scan's `sec` int is echoed back).
 - Whether `config` with `offline:1` leaves the CU Wi-Fi client off or keeps previous credentials.
-- Labels of modes 1..4 (string resources not in the decompiled sources read).
+- Labels of modes 1..4 (string resources not in the app sources read).

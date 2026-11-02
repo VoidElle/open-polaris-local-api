@@ -1,4 +1,4 @@
-# POLARIS (ControlUnit) local flows (decompiled Tecnosystemi app)
+# POLARIS (ControlUnit) local flows (Tecnosystemi app)
 
 Map of the Polaris 5X "ControlUnit" (CU) local flows derived from `../../../../open-pico-local-api/Export-Pico/sources/it/tecnosystemi/TS` (JADX). `file:line` references are relative to that folder. "(inferred)" = deduced, not read.
 Out of scope: PICO, VMC, SeiX, cloud/HTTP (see `../http-flows/README.md`).

@@ -1,6 +1,6 @@
 # Local transport and protocol (POLARIS CU)
 
-Source: JADX decompilation of the Tecnosystemi app. Paths relative to `.../Export-Pico/sources/it/tecnosystemi/TS`. No tag = read in code; "(inferred)" = deduced. Some JADX output is degraded (e.g. `MySocket.MySocketReadAndWrite.doInBackground`, `Commands/MySocket.java:69-128`, control flow is scrambled; behavior below is the reconstructed intent).
+Source: JADX export of the Tecnosystemi app. Paths relative to `.../Export-Pico/sources/it/tecnosystemi/TS`. No tag = read in code; "(inferred)" = deduced. Some JADX output is degraded (e.g. `MySocket.MySocketReadAndWrite.doInBackground`, `Commands/MySocket.java:69-128`, control flow is scrambled; behavior below is the reconstructed intent).
 
 Scope: ControlUnit only. Cloud: `../http-flows/README.md`. Firmware transport: `05-firmware-ota.md`.
 
