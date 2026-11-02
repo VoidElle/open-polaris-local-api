@@ -317,16 +317,16 @@ class PolarisLocalClient:
     async def fetch_all_zone_details(self) -> dict[int, dict[str, Any]]:
         """Fetch stato_zona for all known zones.
 
-        Returns {zone_id: detail_dict}. Skips offline zones (is_off=True)
+        Returns {zone_id: detail_dict}. Skips zones with errors (num_error != 0)
         and adds a 1s delay between queries to avoid overwhelming the CU's
         limited TCP stack.
         """
         details: dict[int, dict[str, Any]] = {}
         for zone in self._zones:
-            if zone.is_off:
+            if zone.num_error:
                 if self.verbose:
                     _LOGGER.debug(
-                        "[%s] Skipping zone detail for '%s' (zone is off)",
+                        "[%s] Skipping zone detail for '%s' (zone has error)",
                         self.device_id, zone.name,
                     )
                 continue
