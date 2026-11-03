@@ -46,7 +46,7 @@ class PolarisLocalClient:
             device_id: Friendly identifier (auto-generated if omitted).
             port: TCP port on the device (default 1235).
             timeout: Per-command socket timeout in seconds.
-            retry_attempts: Number of retries on failure/timeout.
+            retry_attempts: Total attempts per command, including the first.
             retry_delay: Delay between retries in seconds.
             verbose: Enable verbose debug logging.
         """
@@ -90,7 +90,7 @@ class PolarisLocalClient:
         """
         if self._connected:
             return
-        await self.async_update()  # raises TimeoutError / ConnectionError on failure
+        await self.async_update()  # raises TimeoutError on failure (connection errors are retried)
         if self.verbose:
             _LOGGER.debug("[%s] Connected to %s:%d", self.device_id, self.ip, self.port)
 

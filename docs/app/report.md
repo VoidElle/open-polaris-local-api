@@ -37,7 +37,7 @@ Method: two Sonnet agents (local, cloud), each mirroring the structure of `open-
 
 ## Library bugs found (confirmed in `open_polaris_local_api/models.py` / `client.py`)
 
-1. `res` ignored on writes and polls: wrong PIN or CU error is reported as success.
+1. `res` ignored on writes and status polls: wrong PIN or CU error is reported as success (`stato_zona` replies are checked).
 2. `co` parsed as current temperature (`models.py:138`). It is the zone-off flag.
 3. Zone master read as `isMaster` (`models.py:156`). Cloud sends `IsMaster`.
 4. CU errors read from `NumErrors` (`models.py:259`). Only legacy `GetHome` sends it; `GetCUState` sends an `Errors` bitmask.

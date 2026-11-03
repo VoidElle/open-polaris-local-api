@@ -14,18 +14,17 @@ Method: 3 comparison agents (transport/discovery/provisioning, runtime/parsing/c
 
 | # | Sev. | Type | Title |
 |---|------|------|-------|
-| 1 | medium | parsing | `res` not checked on status polls and writes: wrong PIN / CU error reported as success (`stato_zona` fixed in 1.2.4) |
+| 1 | medium | parsing | `res` not checked on status polls and writes: wrong PIN / CU error reported as success (`stato_zona` is checked) |
 | 2 | medium | parsing | `_parse_temp` heuristic: temps under 10.0 °C not scaled (local and cloud); humidity >= 100 wrongly divided |
 | 3 | medium | parsing | `co` in `stato_r` zones used as temperature fallback; app: boolean `coff` flag |
 | 4 | medium | discovery | Discovery requires `serial` + `fw_ver`; app local replies use `ser`, Polaris parsers read neither; README says `res=4` is enough |
 | 5 | medium | wire | `upd_cu`: absent `f_inv`/`f_est` sent as 0 (app -1); `cool_mod` forced 0 when heating; `t_can:0` before first poll |
 | 6 | medium | gap | No crono (`get_fasce`/`upd_fasce`) and no clock (`upd_date`) |
-| 7 | medium | lib-doc | README advertises cloud support; library is TCP only, no LAN-then-cloud fallback |
+| 7 | medium | gap | Library is TCP only, no cloud client and no LAN-then-cloud fallback |
 | 8 | medium | parsing | Cloud CU `Errors` bitmask ignored; `NumErrors` (a count) decoded as bitmask (latent) |
 | 9 | low | parsing | Cloud zone `IsMaster` read as `isMaster` (latent) |
 | 10 | low | wire | Request JSON has spaces and `\u` escapes; app sends compact raw UTF-8 |
 | 11 | low | wire | Retry/timeout model differs |
-| 12 | low | lib-doc | `retry_attempts` documented as retries (is total attempts); `PolarisApiError` never raised; `f_inv`/`f_est` called "fan speed" |
 | 13 | low | robustness | First short read treated as full reply |
 | 14 | low | robustness | PIN not validated; int PIN sent as JSON number |
 | 15 | low | discovery | Probe needs the real PIN and sends it in clear to every host; app probes with `check_pin("")` |
@@ -44,7 +43,7 @@ Method: 3 comparison agents (transport/discovery/provisioning, runtime/parsing/c
 
 - **App**: missing `res` -> null (`Commands/MySocket.java:359-372`); setters act only on `res == 1` (`Activity/ControlUnitActivity.java:332,720,754,868,898`); poll with `res != 1` -> null -> synthesized error bit 5 (`Activity/BaseActivity.java:1429-1480`); `res == 4` on `stato_r` -> fallback to `stato` (`:1404-1417`). Toast on `res != 1` only when the caller passes `z=true` (`MySocket.java:~338-345`).
 - **Lib**: returns any JSON dict (`client.py:373-442`); only `res == 4` inspected on status polls (`:129`); write commands ignore `res`.
-- **Fixed in 1.2.4 for `stato_zona`**: `get_zone_detail` raises `PolarisApiError` when `res != 1`, missing `res` included (`client.py:316-319`), so `fetch_all_zone_details` skips the zone instead of resetting fancoil/serranda to -1 (`:342-345`).
+- **`stato_zona` is checked**: `get_zone_detail` raises `PolarisApiError` when `res != 1`, missing `res` included (`client.py:316-319`), so `fetch_all_zone_details` skips the zone instead of resetting fancoil/serranda to -1 (`:342-345`).
 - **Impact**: wrong PIN or CU error looks like success; entities show default state.
 
 ## 2. `_parse_temp` heuristic: medium (verifier: broader than first reported)
@@ -62,13 +61,13 @@ Method: 3 comparison agents (transport/discovery/provisioning, runtime/parsing/c
 ## 4. Discovery keys: medium (partial)
 
 - **App**: every local-reply serial is `ser` (`Constants.JSON_SER`, `Utils/Constants.java:186`; `Activity/Config/ConfigActivity.java:127,182`). `fw_ver` appears only in PICO/SeiX replies (`CheckLedPICOActivity.java:111`, `PicoActivity.java:198`). Polaris local parsers (`Model/ControlUnit.java:455-600`) read no serial, name, fw or ip.
-- **Lib**: requires `fw_ver` and `serial` and `res` in (1, 4) (`polaris_auto_discovery.py:25-34`); models read them with blank defaults (`models.py:240-243`). README:195 says a `res=4` reply is enough; tests inject `fw_ver`/`serial` into the `res=4` case (`tests/test_polaris_auto_discovery.py:46-49`).
+- **Lib**: requires `fw_ver` and `serial` and `res` in (1, 4) (`polaris_auto_discovery.py:25-34`); models read them with blank defaults (`models.py:240-243`). README (Auto-Discovery notes) states that a `res=4` reply also needs `fw_ver` and `serial`; tests inject `fw_ver`/`serial` into the `res=4` case (`tests/test_polaris_auto_discovery.py:46-49`).
 - **Impact**: if Polaris `stato_r` carries `ser` (or nothing), discovery finds no device and identity is blank. Needs a device capture. Fix if confirmed: accept `ser`, or drop the key requirement.
 
 ## 5. `upd_cu` payload: medium
 
 - **App**: parsers default `f_inv`/`f_est` to -1 in local and cloud paths (`ControlUnit.java:489-505,566-582,645-672`); -1 hides the feature (`ControlUnitActivity.java:44,628-640`) and is echoed back in `upd_cu` (`ControlUnit.java:317-336`). `cool_mod` stored only when the key is present (`:472-473,549-550,624-625`) and echoed raw.
-- **Lib**: absent `f_inv`/`f_est` -> 0 (`models.py:~248-252`), sent as 0 (`client.py:266-267`); `operating_mode` forced 0 when not cooling (`models.py:232-237`), sent as `cool_mod` (`client.py:264`); `_device is None` -> `t_can:0`. Proven: `from_local({'cool_mod':2,'is_cool':0}).operating_mode == 0`, `from_local({}).f_inv == 0`.
+- **Lib**: absent `f_inv`/`f_est` -> 0 (`models.py:253-256`), sent as 0 (`client.py:266-267`); `operating_mode` forced 0 when not cooling (`models.py:232-237`), sent as `cool_mod` (`client.py:264`); `_device is None` -> `t_can:0`. Proven: `from_local({'cool_mod':2,'is_cool':0}).operating_mode == 0`, `from_local({}).f_inv == 0`.
 - **Impact**: writes 0 where the app writes -1; heating toggle may overwrite the remembered cooling sub-mode (CU effect unverified, inferred).
 
 ## 6. No crono, no clock: medium
@@ -77,11 +76,11 @@ Method: 3 comparison agents (transport/discovery/provisioning, runtime/parsing/c
 - **Lib**: none; only `is_crono_mode`.
 - **Impact**: schedules and CU clock cannot be read or written.
 
-## 7. No cloud client, README claims cloud: medium
+## 7. No cloud client: medium
 
 - **App**: LAN first at the cloud `IP`, then cloud with `?create_command=false` (`ControlUnitActivity.java:782,925`, `ZoneActivity.java:532`, `CronoSetActivity.java:465`); cloud poll `GET /api/v1/GetCUState` (`res/values/strings.xml:830`).
-- **Lib**: TCP only (`client.py`); README:32 "Supports both local TCP ... and cloud API", README:375.
-- **Impact**: docs overpromise. Clarify that only cloud-shaped *parsing* exists.
+- **Lib**: TCP only (`client.py`). The README states that only cloud-shaped *parsing* exists.
+- **Impact**: no remote access and no fallback when the LAN path fails.
 
 ## 8. Cloud CU `Errors`: medium, latent (partial)
 
@@ -97,19 +96,13 @@ Method: 3 comparison agents (transport/discovery/provisioning, runtime/parsing/c
 ## 10. Request framing: low
 
 - **App**: compact org.json, raw UTF-8, no terminator (`ControlUnit.java:317-336`, `MySocket.java:206-213`). Gson-built commands (`check_pin`, `scan_wifi`) escape `<>&='` as `\uXXXX`; only `configCu` disables HTML escaping (`MySocket.java:~277`).
-- **Lib**: `json.dumps` default separators, `ensure_ascii=True` (`client.py:403`, `polaris_auto_discovery.py:22`). Proven: `{"c": "upd_zona", "pin": 1234, "n": "Cucina è"}`.
+- **Lib**: `json.dumps` default separators, `ensure_ascii=True` (`client.py:408`, `polaris_auto_discovery.py:22`). Proven: `{"c": "upd_zona", "pin": 1234, "n": "Cucina è"}`.
 - **Impact**: risk only if the CU parser is naive; unverified.
 
 ## 11. Retry/timeout: low
 
 - **App**: connect 1000 ms x2 with 800 ms sleep; soTimeout 1000 ms, 15000 ms for long commands (`MySocket.java:161-191`, `Utils/Constants.java:26`); outer 3 tries, 500 ms (`MySocket.java:334-345`).
-- **Lib**: 5.0 s `wait_for`, 2 total attempts, 1.0 s delay (`client.py:36-38,373-396`), ~11 s worst case. Also retries refusals and decode errors.
-
-## 12. Library doc misstatements: low
-
-- `retry_attempts` docstring "Number of retries" (`client.py:49`), README:211; code is `range(1, retry_attempts+1)` (`client.py:373`) = total attempts.
-- `PolarisApiError` defined (`client.py:440`), never raised; README:381-393 documents catching it. Refusals surface as `TimeoutError` (`OSError` swallowed, `:392`).
-- README:342-343 calls `f_inv`/`f_est` "Winter/Summer fan speed"; app uses them as winter/summer function flags, -1 = absent.
+- **Lib**: 5.0 s `wait_for`, 2 total attempts, 1.0 s delay (`client.py:36-38,373-396`), ~11 s worst case. Also retries refusals and decode errors, so a refused connection surfaces as `TimeoutError` (`OSError` caught at `client.py:397`).
 
 ## 13. Short read: low (inferred)
 
@@ -174,14 +167,14 @@ Method: 3 comparison agents (transport/discovery/provisioning, runtime/parsing/c
 ## 25. `fetch_all_zone_details`: info (partial)
 
 - **App**: polls `stato_zona` for the one zone shown, every 5 s (`BaseActivity.java:162,1338-1362`).
-- **Lib**: public helper, never called by the library (`async_update` uses only `get_status`, `client.py:139-162`); queries every non-error zone with a 1 s sleep each (`:325-334`). Only matters if a caller (the HA integration) opts in.
+- **Lib**: public helper, never called by the library (`async_update` uses only `get_status`, `client.py:139-162`); queries every non-error zone with a 1 s sleep each (`:330-339`). Only matters if a caller (the HA integration) opts in.
 
 ## Suggested priorities
 
 1. #1 `res` handling and #2 temperature scaling: live, user-visible, small fixes in `client.py` / `models.py`.
 2. #3 `co`, #5 `f_inv`/`f_est` -1 sentinel and `cool_mod` echo: wrong data read or written.
 3. #4 discovery keys: confirm with a capture, then accept `ser`.
-4. Docs: #7, #12, #21 (one README/docstring pass).
+4. Docs: #21 (`set_zone_serranda` docstring).
 5. Cloud-key fixes #8, #9, #22 only if a cloud client is added.
 6. Features: #6 crono/clock, #16 `check_pin`.
 

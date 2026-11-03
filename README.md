@@ -29,7 +29,7 @@
 - Type-safe dataclasses — `PolarisDevice` and `PolarisZone`
 - Async context manager support
 - Comprehensive logging with optional verbose mode
-- Supports both local TCP (snake_case) and cloud API (PascalCase) response formats
+- Models parse local TCP replies and cloud-shaped (PascalCase) payloads; the client itself talks only local TCP (no cloud client)
 
 ### 🔍 **Auto-Discovery**
 - **Subnet scan** — finds all Polaris devices on your LAN without knowing their IPs
@@ -193,7 +193,7 @@ ips = await PolarisAutoDiscovery.discover(pin="1234", subnet="192.168.1.0/24")
 ### Notes
 
 - A 254-host `/24` scan with defaults completes in roughly **8 seconds**
-- Devices running older firmware (no `stato_r` support) are still discovered — a `res=4` reply is enough to confirm a Polaris device
+- A reply counts only if it has `fw_ver`, `serial` and `res` 1 or 4. Firmware without `stato_r` answers `res=4`; it is discovered only if that reply also carries `fw_ver` and `serial`
 - Tune `probe_timeout` upward if devices are on a slow or congested network
 
 ---
@@ -209,7 +209,7 @@ ips = await PolarisAutoDiscovery.discover(pin="1234", subnet="192.168.1.0/24")
 | `device_id` | `str` | `None` | 🏷️ Friendly identifier (auto-set to `polaris_{ip}:{port}` if omitted) |
 | `port` | `int` | `1235` | 📡 TCP port on the device |
 | `timeout` | `float` | `5.0` | ⏱️ Per-command socket timeout (seconds) |
-| `retry_attempts` | `int` | `2` | 🔄 Number of retry attempts on failure |
+| `retry_attempts` | `int` | `2` | 🔄 Total attempts per command (including the first) |
 | `retry_delay` | `float` | `1.0` | ⏳ Delay between retries (seconds) |
 | `verbose` | `bool` | `False` | 📢 Enable verbose debug logging |
 
@@ -225,7 +225,7 @@ Verifies connectivity by performing an initial `async_update`. Sets `_connected=
 await client.connect()
 ```
 
-**Raises:** `TimeoutError` or `ConnectionError` on failure.
+**Raises:** `TimeoutError` on failure. Connection errors (refused, reset) are retried inside the client and also end as `TimeoutError`.
 
 ### Disconnect
 
@@ -364,13 +364,13 @@ Represents the Polaris Control Unit (CU).
 | `operating_mode` | `int` | 0=heating, 1=cooling, 2=dehum, 3=vent |
 | `cooling_mode_name` | `str` (property) | Human-readable mode name |
 | `t_can` | `int` | Canal temperature setpoint (°C) |
-| `f_inv` | `int` | Winter fan speed |
-| `f_est` | `int` | Summer fan speed |
+| `f_inv` | `int` | Winter function value (`f_inv`/`fi`); the app uses `-1` for absent, the library defaults to `0` |
+| `f_est` | `int` | Summer function value (`f_est`/`fe`); same defaults as `f_inv` |
 | `ir_present` | `int` | IR module present flag |
 | `num_errors` | `int` | CU error bitmask |
 | `has_error` | `bool` (property) | `num_errors != 0` |
 | `active_errors` | `list[str]` (property) | Decoded error strings |
-| `zones` | `list[PolarisZone]` | Zones (populated by `async_update`) |
+| `zones` | `list[PolarisZone]` | Not filled by `async_update` (stays `[]`); use the zones it returns or `client.zones` |
 
 ### `PolarisZone`
 
@@ -389,6 +389,8 @@ Represents a single HVAC zone.
 | `fancoil_set` | `int` | Fan coil setpoint (-1 = not installed) |
 | `serranda` | `int` | Shutter position (-1 = not installed) |
 | `serranda_set` | `int` | Shutter setpoint (-1 = not installed) |
+| `ev` | `int` | `EV` field, raw (default `0`) |
+| `man_crono` | `int` | `man_crono` field, raw (default `0`) |
 | `is_crono_mode` | `bool` | Chrono (scheduled) mode active |
 | `is_master` | `bool` | Zone is master |
 | `humidity` | `float \| None` | Current humidity (%) |
@@ -396,6 +398,8 @@ Represents a single HVAC zone.
 | `num_error` | `int` | Zone error bitmask |
 | `has_error` | `bool` (property) | `num_error != 0` |
 | `active_errors` | `list[str]` (property) | Decoded error strings |
+| `c_badge` / `c_win` | `Any` | Badge and window contact fields, raw |
+| `raw_data` | `dict` | Original zone payload |
 
 Both models accept both **local TCP** (snake_case, ridotto, full) and **cloud API** (PascalCase) response formats via the `from_local()` factory method.
 
@@ -484,10 +488,10 @@ Utility scripts live in the [`scripts/`](scripts/) directory and must be run fro
 Keeps all version references in sync across `pyproject.toml` and `README.md` in one command.
 
 ```bash
-./scripts/bump_version.sh patch     # 1.0.1 → 1.0.2
-./scripts/bump_version.sh minor     # 1.0.1 → 1.1.0
-./scripts/bump_version.sh major     # 1.0.1 → 2.0.0
-./scripts/bump_version.sh 1.2.3     # set an explicit version
+./scripts/bump_version.sh patch     # X.Y.Z → X.Y.(Z+1)
+./scripts/bump_version.sh minor     # X.Y.Z → X.(Y+1).0
+./scripts/bump_version.sh major     # X.Y.Z → (X+1).0.0
+./scripts/bump_version.sh X.Y.Z     # set an explicit version
 ./scripts/bump_version.sh           # interactive menu
 ```
 

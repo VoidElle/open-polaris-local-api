@@ -27,7 +27,7 @@ Async Python library (asyncio, Python 3.11+) for controlling Tecnosystemi Polari
   1. **Local ridotto** (e.g., `off`, `cl`, `cl_m`, `fi`, `fe`, `tc`)
   2. **Local full** (e.g., `is_off`, `is_cool`, `cool_mod`, `f_inv`, `f_est`, `t_can`)
   3. **Cloud/PascalCase** (e.g., `IsOFF`, `IsCooling`, `OperatingModeCooling`, `TempCan`)
-- `from_api()` on both models delegates to `from_local()` for backward compatibility
+- `PolarisZone.from_api()` and `PolarisDevice.from_get_home()` delegate to `from_local()` for backward compatibility
 - Temperature encoding: values ≥ 100 are integer-encoded (e.g., 195 = 19.5°C). Use `_parse_temp()`
 - `t_can` is transmitted as `°C × 10`; divide by 10 on parse, multiply by 10 on send
 - Error fields are integer bitmasks (LSB = bit 0); decode with `_decode_error_bitmask(mask, messages)`
@@ -35,10 +35,10 @@ Async Python library (asyncio, Python 3.11+) for controlling Tecnosystemi Polari
 ## Coding Conventions
 - All I/O methods are `async`
 - Raise `TimeoutError` (stdlib) when device is unreachable after all retries
-- Read commands mirror the app on `res`: only `res == 1` is valid (missing `res` included) → otherwise raise `PolarisApiError`. Exception: `res == 4` on `stato_r` triggers the `stato` fallback
+- `res` handling: `get_zone_detail` mirrors the app (only `res == 1` is valid, missing `res` included, otherwise `PolarisApiError`). `get_status` only checks `res == 4` on `stato_r` to fall back to `stato`; it does not reject other codes
 - Write commands log a warning on no reply; they do not raise
 - Raise `ValueError` for invalid arguments (e.g., `update_zone` with no known `set_temp`)
-- `verbose` flag gates all debug logging via `_LOGGER.debug`
+- `verbose` flag gates the transport and detail debug logs; `async_update` (debug) and `update_zone`/`update_cu` (info) always log a summary line
 - New commands follow the `_send_command_with_retry` → `_send_and_receive` pattern
 - Zone fan/shutter: value `7` maps to `16` on the wire (auto-speed sentinel)
 - When both fancoil and serranda are present, fancoil takes priority (`lastFancoil=True` default in APK)
