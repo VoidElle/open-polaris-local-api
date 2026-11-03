@@ -164,6 +164,7 @@ async def control_cu():
 - [Data Models](#️-data-models)
 - [Error Handling](#-error-handling)
 - [Library Structure](#-library-structure)
+- [Official app protocol notes](docs/app/report.md): how the Tecnosystemi app talks to the CU, locally ([local-flows](docs/app/local-flows/README.md)) and through the cloud ([http-flows](docs/app/http-flows/README.md)), and how this library differs ([diff-app-api](docs/app/diff-app-api.md))
 
 ---
 
@@ -319,6 +320,30 @@ All parameters are optional; omitted values fall back to the zone's current stat
 
 > **Note:** `set_temp` must be known (either from last `async_update` or provided explicitly). If neither is available, `ValueError` is raised.
 
+### Shutter (Serranda)
+
+```python
+await client.set_zone_serranda(zone, 3)
+```
+
+Calls `update_zone(zone, serranda_set=value)` and updates `zone.serranda_set`. The value goes on the wire as `shu_set`/`fan_set` unchanged, except `7` (Auto), which is sent as `16`. The command only carries the value when `zone.serranda != -1`; if the zone also has a fancoil with a set-point, the fancoil value is sent instead.
+
+Values used by the official app: `0` closed, `1`–`3` A1–A3, `4`–`6` Auto1–Auto3, `7` Auto.
+
+### Zone Details (`stato_zona`)
+
+`stato_r` / `stato` do not include every per-zone field. `stato_zona` returns `fan`, `fan_set`, `shu`, `shu_set`, `EV`, `EV_set`, `v` (zone firmware) and `m` (model).
+
+```python
+detail = await client.get_zone_detail(zone.zone_id)   # raw reply dict
+
+details = await client.fetch_all_zone_details()        # {zone_id: detail}
+```
+
+- `get_zone_detail` raises `TimeoutError` when there is no reply, and `PolarisApiError` when the reply's `res` is not `1` (a missing `res` included), as the official app does.
+- `fetch_all_zone_details` queries every zone in `client.zones` without errors (`num_error == 0`), waits 1 s before each request, and copies `shu`/`shu_set`/`fan`/`fan_set` into each zone's `serranda`/`serranda_set`/`fancoil`/`fancoil_set`. A zone that fails is logged and left out of the result; its cached values are not changed.
+- `async_update()` does not call either method.
+
 ---
 
 ## 🗃️ Data Models
@@ -378,9 +403,15 @@ Both models accept both **local TCP** (snake_case, ridotto, full) and **cloud AP
 
 ## ⚠️ Error Handling
 
-### `PolarisApiError`
+### Exceptions
 
-Raised on communication failures:
+| Exception | Raised by | When |
+|---|---|---|
+| `TimeoutError` | `connect`, `async_update`, `get_status`, `get_zone_detail` | No reply after all retries |
+| `PolarisApiError` | `get_zone_detail` | `stato_zona` reply with `res` other than `1` |
+| `ValueError` | `update_zone`, `PolarisAutoDiscovery.discover` | `set_temp` unknown; invalid or non-IPv4 subnet |
+
+Write commands (`update_zone`, `update_cu` and the helpers built on them) do not raise when the device does not reply: they log a warning.
 
 ```python
 from open_polaris_local_api import PolarisApiError
@@ -388,10 +419,11 @@ from open_polaris_local_api import PolarisApiError
 try:
     async with PolarisLocalClient(ip="192.168.1.100", pin="1234") as client:
         device, zones = await client.async_update()
+        detail = await client.get_zone_detail(zones[0].zone_id)
 except TimeoutError:
     print("Device unreachable")
 except PolarisApiError as e:
-    print(f"Communication error: {e}")
+    print(f"Device returned an error: {e}")
 ```
 
 ### Device / Zone Errors
@@ -422,6 +454,7 @@ open-polaris-local-api/
 │   ├── auto_discovery.py            # Discover devices then read their status
 │   ├── multi_device.py              # Concurrent control of multiple devices
 │   └── monitoring.py                # Continuous polling with error alerts
+├── docs/app/                        # Official app protocol notes and app-vs-library diff
 ├── open_polaris_local_api/
 │   ├── __init__.py                  # exports: PolarisLocalClient, PolarisApiError, PolarisDevice, PolarisZone, PolarisAutoDiscovery
 │   ├── client.py                    # PolarisLocalClient, PolarisApiError

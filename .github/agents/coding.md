@@ -4,10 +4,10 @@
 Async Python library (asyncio, Python 3.11+) for controlling Tecnosystemi Polaris 5X HVAC Control Unit (CU) devices over local TCP. Used as a local API client, commonly integrated with Home Assistant.
 
 ## Architecture
-- **`PolarisLocalClient`** (`polaris_client.py`) — main public API. One instance per device.
+- **`PolarisLocalClient`** (`client.py`) — main public API. One instance per device.
 - **`PolarisDevice`** (`models.py`) — dataclass representing the CU state (power, mode, errors, zones list).
 - **`PolarisZone`** (`models.py`) — dataclass representing a single HVAC zone (temp, setpoints, fan, shutter, errors).
-- **`PolarisApiError`** (`polaris_client.py`) — base exception for communication failures.
+- **`PolarisApiError`** (`client.py`) — raised when the device replies with an error (today only `get_zone_detail`, on `res != 1`).
 
 ## TCP Protocol
 - JSON payloads over **raw TCP socket** on **port 1235**
@@ -16,6 +16,7 @@ Async Python library (asyncio, Python 3.11+) for controlling Tecnosystemi Polari
 - Commands:
   - `stato_r` — compact/ridotto status poll (preferred for local polling)
   - `stato` — full status (fallback when device returns `res=4` for `stato_r`)
+  - `stato_zona` — per-zone details (`fan`, `fan_set`, `shu`, `shu_set`, `EV`, `EV_set`, `v`, `m`); `get_zone_detail` / `fetch_all_zone_details`, never called by `async_update`
   - `upd_zona` — update a zone's settings
   - `upd_cu` — update CU-level settings
 - `"stato_sync"` is a cloud/HTTP command — **never send over TCP**
@@ -34,6 +35,8 @@ Async Python library (asyncio, Python 3.11+) for controlling Tecnosystemi Polari
 ## Coding Conventions
 - All I/O methods are `async`
 - Raise `TimeoutError` (stdlib) when device is unreachable after all retries
+- Read commands mirror the app on `res`: only `res == 1` is valid (missing `res` included) → otherwise raise `PolarisApiError`. Exception: `res == 4` on `stato_r` triggers the `stato` fallback
+- Write commands log a warning on no reply; they do not raise
 - Raise `ValueError` for invalid arguments (e.g., `update_zone` with no known `set_temp`)
 - `verbose` flag gates all debug logging via `_LOGGER.debug`
 - New commands follow the `_send_command_with_retry` → `_send_and_receive` pattern
@@ -56,6 +59,7 @@ Async Python library (asyncio, Python 3.11+) for controlling Tecnosystemi Polari
 - No third-party dependencies — stdlib only
 
 ## Testing
-- No automated test suite currently present
+- Unit tests in `tests/` (`unittest`, `IsolatedAsyncioTestCase`); run `./scripts/run_tests.sh` or `python -m unittest discover -s tests -v` (CI command)
+- Mock the transport by replacing `client._send_command_with_retry` with a fake coroutine
 - Manual testing: enable `verbose=True` and inspect DEBUG log output for TCP send/receive traces
 - Verify both `stato_r` fallback path (res=4 → stato) and normal path work against the device

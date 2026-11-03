@@ -58,10 +58,11 @@ Diagnose issues in the async TCP communication stack of this Polaris 5X CU devic
 - Full update: `async_update()` → `get_status()` → `PolarisDevice.from_local()` + `[PolarisZone.from_local(z) for z in zones_data]`
 - Zone write: `update_zone()` builds `upd_zona` cmd → `_send_command_with_retry()`
 - CU write: `update_cu()` builds `upd_cu` cmd → `_send_command_with_retry()`
+- Zone details: `get_zone_detail()` → `_send_command_with_retry({"c":"stato_zona",...})` → `None` raises `TimeoutError`, `res != 1` raises `PolarisApiError`; `fetch_all_zone_details()` loops non-error zones with 1 s sleep, skips failures, merges `shu`/`fan` into each `PolarisZone`
 - Transport: `_send_command_with_retry()` → retries → `asyncio.wait_for(_send_and_receive(), timeout)` → open TCP → write JSON → read response → close socket
 
 ## Exception Classes
-- `PolarisApiError` — base class for communication failures
-- `TimeoutError` (stdlib) — no response after all retries
-- `ValueError` — invalid arguments (e.g., missing `set_temp`)
-- `ConnectionError` (stdlib) — TCP connection refused or reset
+- `TimeoutError` (stdlib) — no response after all retries (`connect`, `async_update`, `get_status`, `get_zone_detail`)
+- `PolarisApiError` — device replied with an error; today only `get_zone_detail` on `res != 1`
+- `ValueError` — invalid arguments (e.g., missing `set_temp`, invalid subnet)
+- `OSError` / `ConnectionError` from a refused or reset TCP connection are caught inside `_send_command_with_retry` and retried; they surface as `TimeoutError` (or `None` for write commands)

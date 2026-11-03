@@ -14,7 +14,7 @@ Method: 3 comparison agents (transport/discovery/provisioning, runtime/parsing/c
 
 | # | Sev. | Type | Title |
 |---|------|------|-------|
-| 1 | medium | parsing | `res` never checked: wrong PIN / CU error reported as success; bad `stato_zona` reply clobbers zone state |
+| 1 | medium | parsing | `res` not checked on status polls and writes: wrong PIN / CU error reported as success (`stato_zona` fixed in 1.2.4) |
 | 2 | medium | parsing | `_parse_temp` heuristic: temps under 10.0 °C not scaled (local and cloud); humidity >= 100 wrongly divided |
 | 3 | medium | parsing | `co` in `stato_r` zones used as temperature fallback; app: boolean `coff` flag |
 | 4 | medium | discovery | Discovery requires `serial` + `fw_ver`; app local replies use `ser`, Polaris parsers read neither; README says `res=4` is enough |
@@ -43,7 +43,8 @@ Method: 3 comparison agents (transport/discovery/provisioning, runtime/parsing/c
 ## 1. `res` never checked: medium
 
 - **App**: missing `res` -> null (`Commands/MySocket.java:359-372`); setters act only on `res == 1` (`Activity/ControlUnitActivity.java:332,720,754,868,898`); poll with `res != 1` -> null -> synthesized error bit 5 (`Activity/BaseActivity.java:1429-1480`); `res == 4` on `stato_r` -> fallback to `stato` (`:1404-1417`). Toast on `res != 1` only when the caller passes `z=true` (`MySocket.java:~338-345`).
-- **Lib**: returns any JSON dict (`client.py:371-396`); only `res == 4` inspected (`:129`); `get_zone_detail` no check (`:312-316`); `fetch_all_zone_details` writes `.get(..., -1)` unconditionally (`:337-340`), so an error reply resets fancoil/serranda to -1.
+- **Lib**: returns any JSON dict (`client.py:373-442`); only `res == 4` inspected on status polls (`:129`); write commands ignore `res`.
+- **Fixed in 1.2.4 for `stato_zona`**: `get_zone_detail` raises `PolarisApiError` when `res != 1`, missing `res` included (`client.py:316-319`), so `fetch_all_zone_details` skips the zone instead of resetting fancoil/serranda to -1 (`:342-345`).
 - **Impact**: wrong PIN or CU error looks like success; entities show default state.
 
 ## 2. `_parse_temp` heuristic: medium (verifier: broader than first reported)
@@ -151,7 +152,7 @@ Method: 3 comparison agents (transport/discovery/provisioning, runtime/parsing/c
 
 ## 21. Serranda docstring: low
 
-- **App**: 0 closed, 1-3 A1-A3, 4-6 Auto1-3, 7 Auto, sent as 16 (`Utils/Constants.java:294-312`). **Lib**: `client.py:359-361` "0=Auto". Callers passing 0 close the shutter.
+- **App**: 0 closed, 1-3 A1-A3, 4-6 Auto1-3, 7 Auto, sent as 16 (`Utils/Constants.java:294-312`). **Lib**: `client.py:361-367` "0=Auto". Callers passing 0 close the shutter.
 
 ## 22. Cloud zone fields: low, latent
 
