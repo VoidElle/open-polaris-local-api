@@ -471,6 +471,57 @@ class TestRetryLogic(unittest.IsolatedAsyncioTestCase):
 
 # ─── PolarisApiError ──────────────────────────────────────────────────────────
 
+class TestGetZoneDetail(unittest.IsolatedAsyncioTestCase):
+
+    @staticmethod
+    def _client_returning(response):
+        client = PolarisLocalClient("192.168.1.1", "1234")
+
+        async def fake_send(cmd):
+            return response
+
+        client._send_command_with_retry = fake_send
+        return client
+
+    async def test_returns_detail_on_res_1(self):
+        detail = {"res": 1, "shu": 1, "shu_set": 1, "fan": -1, "fan_set": -1}
+        client = self._client_returning(detail)
+        self.assertEqual(await client.get_zone_detail(1), detail)
+
+    async def test_raises_on_reply_without_res(self):
+        client = self._client_returning({"shu": 1, "shu_set": 1})
+        with self.assertRaises(PolarisApiError):
+            await client.get_zone_detail(1)
+
+    async def test_raises_on_error_res(self):
+        client = self._client_returning({"res": 0})
+        with self.assertRaises(PolarisApiError):
+            await client.get_zone_detail(1)
+
+    async def test_raises_timeout_on_no_reply(self):
+        client = self._client_returning(None)
+        with self.assertRaises(TimeoutError):
+            await client.get_zone_detail(1)
+
+    async def test_fetch_all_skips_zone_with_error_res(self):
+        client = PolarisLocalClient("192.168.1.1", "1234")
+        client._zones = [
+            PolarisZone(zone_id=1, name="A", serranda=2, serranda_set=2),
+            PolarisZone(zone_id=2, name="B"),
+        ]
+        replies = {1: {"res": 0}, 2: {"res": 1, "shu": 1, "shu_set": 1, "fan": -1, "fan_set": -1}}
+
+        async def fake_send(cmd):
+            return replies[cmd["id_zona"]]
+
+        client._send_command_with_retry = fake_send
+        with patch("open_polaris_local_api.client.asyncio.sleep", AsyncMock()):
+            details = await client.fetch_all_zone_details()
+        self.assertEqual(set(details), {2})
+        # Error reply must not reset the cached damper state on the zone.
+        self.assertEqual(client._zones[0].serranda, 2)
+
+
 class TestPolarisApiError(unittest.TestCase):
 
     def test_is_exception(self):

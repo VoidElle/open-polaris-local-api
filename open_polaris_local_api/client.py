@@ -312,6 +312,11 @@ class PolarisLocalClient:
         response = await self._send_command_with_retry(cmd)
         if response is None:
             raise TimeoutError(f"No response for stato_zona (zone {zone_id})")
+        # Mirror the app: only res == 1 is a valid reply.
+        # An error reply has no zone fields and would reset fan/shu to -1 in callers' caches.
+        res = response.get("res")
+        if res != 1:
+            raise PolarisApiError(f"stato_zona error for zone {zone_id}: res={res}")
         return response
 
     async def fetch_all_zone_details(self) -> dict[int, dict[str, Any]]:
