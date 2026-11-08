@@ -3,7 +3,7 @@ import asyncio
 import json
 import unittest
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from open_polaris_local_api.polaris_auto_discovery import (
     PolarisAutoDiscovery,
@@ -111,7 +111,8 @@ def _make_tcp_mock(response: dict):
     encoded = json.dumps(response).encode("utf-8")
     reader.read.side_effect = [encoded, b""]
 
-    writer = AsyncMock()
+    writer = MagicMock()  # StreamWriter.write/close are sync; only drain/wait_closed are async
+    writer.drain = AsyncMock()
     writer.wait_closed = AsyncMock(return_value=None)
     return reader, writer
 
@@ -149,7 +150,8 @@ class TestProbeHost(unittest.IsolatedAsyncioTestCase):
     async def test_empty_response_returns_none(self):
         reader = AsyncMock()
         reader.read.side_effect = [b""]
-        writer = AsyncMock()
+        writer = MagicMock()  # StreamWriter.write/close are sync; only drain/wait_closed are async
+        writer.drain = AsyncMock()
         writer.wait_closed = AsyncMock(return_value=None)
         with patch("asyncio.open_connection", return_value=(reader, writer)):
             result = await PolarisAutoDiscovery._probe_host("192.168.1.6", 1235, b"probe", 1.5, False)
@@ -158,7 +160,8 @@ class TestProbeHost(unittest.IsolatedAsyncioTestCase):
     async def test_invalid_json_returns_none(self):
         reader = AsyncMock()
         reader.read.side_effect = [b"not json", b""]
-        writer = AsyncMock()
+        writer = MagicMock()  # StreamWriter.write/close are sync; only drain/wait_closed are async
+        writer.drain = AsyncMock()
         writer.wait_closed = AsyncMock(return_value=None)
         with patch("asyncio.open_connection", return_value=(reader, writer)):
             result = await PolarisAutoDiscovery._probe_host("192.168.1.7", 1235, b"probe", 1.5, False)
@@ -175,7 +178,8 @@ class TestDiscover(unittest.IsolatedAsyncioTestCase):
 
         async def fake_open_connection(ip, port):
             reader = AsyncMock()
-            writer = AsyncMock()
+            writer = MagicMock()  # StreamWriter.write/close are sync; only drain/wait_closed are async
+            writer.drain = AsyncMock()
             writer.wait_closed = AsyncMock(return_value=None)
             if ip in ("192.168.1.10", "192.168.1.20"):
                 reader.read.side_effect = [valid, b""]

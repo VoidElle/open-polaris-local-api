@@ -80,6 +80,7 @@ Reverse-engineered from the official app; spec in `docs/app/http-flows/` (read i
 ## Testing
 - Unit tests in `tests/` (`unittest`, `IsolatedAsyncioTestCase`): `tests/local/` TCP, `tests/cloud/` cloud client. Install with `pip install -e .` first (otherwise `tests/cloud` fails to import). Run `./scripts/run_tests.sh` or `python3 -W all -m unittest discover -s tests -t . -v` (CI command)
 - Mock the local transport by replacing `client._send_command_with_retry` with a fake coroutine
+- Mock a `StreamWriter` as `MagicMock` with only `drain`/`wait_closed` as `AsyncMock` (`write`/`close` are sync; an `AsyncMock` writer emits `RuntimeWarning`). The suite must run with zero warnings under `-W all`
 - Cloud tests run against a local fake backend (`aiohttp.test_utils.TestServer` + `base_url`) that enforces the rolling-token counter; never hit the real backend in tests
 - `tests/cloud/test_examples.py` runs each `examples/cloud/` script (except the endless `monitor_cloud.py`) against that backend: update it when an example's CLI or output changes
 - Manual testing: enable `verbose=True` and inspect DEBUG log output for TCP send/receive traces
