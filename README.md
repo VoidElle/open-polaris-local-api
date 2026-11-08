@@ -420,7 +420,7 @@ Both models accept both **local TCP** (snake_case, ridotto, full) and **cloud AP
 | Exception | Raised by | When |
 |---|---|---|
 | `TimeoutError` | `connect`, `async_update`, `get_status`, `get_zone_detail` | No reply after all retries |
-| `PolarisApiError` | `get_zone_detail` | `stato_zona` reply with `res` other than `1` |
+| `PolarisApiError` | `connect`, `async_update`, `get_status`, `get_zone_detail` | `stato_r`/`stato`/`stato_zona` reply with `res` other than `1` (a missing `res` included); on `connect` this usually means a wrong PIN |
 | `PolarisAuthError` | `PolarisCloudClient` (any call) | Cloud only: login rejected or token refused. Subclass of `PolarisApiError`, import from `open_polaris_local_api.cloud` |
 | `ValueError` | `update_zone`, `PolarisAutoDiscovery.discover` | `set_temp` unknown; invalid or non-IPv4 subnet |
 

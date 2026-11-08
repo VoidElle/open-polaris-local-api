@@ -162,6 +162,28 @@ class TestGetStatus(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["serial"], "SN001")
         self.assertEqual(call_count, 2)
 
+    async def test_error_reply_raises_api_error(self):
+        """A res != 1 reply (e.g. wrong PIN) must not parse as a zone-less device."""
+        for reply in ({"res": 0}, {"res": 2}, {"serial": "SN001"}):
+            client = PolarisLocalClient("192.168.1.1", "0000", retry_attempts=1)
+            with self.subTest(reply=reply), _patch_tcp(reply):
+                with self.assertRaises(PolarisApiError):
+                    await client.connect()
+                self.assertFalse(client.connected)
+                self.assertIsNone(client.device)
+
+    async def test_fallback_error_reply_raises_api_error(self):
+        """res=4 on stato_r, then an error on stato: still an error."""
+        replies = iter([{"res": 4}, {"res": 0}])
+
+        async def fake_open_connection(_host, _port, **_kw):
+            return _make_tcp_mock(next(replies))
+
+        client = PolarisLocalClient("192.168.1.1", "0000", retry_attempts=1)
+        with patch("asyncio.open_connection", side_effect=fake_open_connection):
+            with self.assertRaises(PolarisApiError):
+                await client.get_status()
+
     async def test_no_response_raises_timeout(self):
         client = PolarisLocalClient("192.168.1.1", "1234", retry_attempts=1)
         reader = AsyncMock()

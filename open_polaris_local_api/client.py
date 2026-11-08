@@ -87,6 +87,7 @@ class PolarisLocalClient:
 
         Sets _connected=True and populates _device/_zones on success.
         TCP is stateless per-command so there is nothing to keep open.
+        Raises PolarisApiError when the device rejects the request (e.g. wrong PIN).
         """
         if self._connected:
             return
@@ -134,6 +135,11 @@ class PolarisLocalClient:
 
         if response is None:
             raise TimeoutError(f"No response from Polaris device at {self.ip}:{self.port}")
+        # Mirror the app: only res == 1 is a valid state reply (a wrong PIN lands here).
+        # Without this check an error reply parses as a device with zero zones.
+        res = response.get("res")
+        if res != 1:
+            raise PolarisApiError(f"stato error: res={res} (wrong PIN?)")
         return response
 
     async def async_update(self) -> tuple[PolarisDevice, list[PolarisZone]]:
