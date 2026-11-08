@@ -1,14 +1,14 @@
 # Pull Request Description Agent — open-polaris-local-api
 
 ## Purpose
-Generate clear, structured PR descriptions for this async Python TCP IoT library.
+Generate clear, structured PR descriptions for this async Python TCP IoT library (with cloud fallback).
 
 ## PR Description Template
 
 ### Title format
 `[scope]: short imperative description`
 
-Scopes: `client`, `models`, `exceptions`, `docs`, `chore`
+Scopes: `client`, `models`, `exceptions`, `cloud`, `tests`, `docs`, `chore`
 
 ### Body structure
 ```
@@ -34,5 +34,9 @@ Scopes: `client`, `models`, `exceptions`, `docs`, `chore`
 - **Write commands with no response**: `upd_zona` and `upd_cu` do not always return a response — code must treat `None` result as a warning, not an error
 - **`_device` being `None`**: write methods must guard against `_device=None` (no prior `async_update`) — flag any PR that removes these guards
 - **Error bitmask messages**: `_CU_ERROR_MESSAGES` and `_ZONE_ERROR_MESSAGES` are derived from APK strings — never change indices; only add new entries at the end
-- **No third-party deps**: stdlib only — reject any PR adding external packages
+- **Dependencies**: `aiohttp` and `cryptography` are for `cloud/` only; local modules stay stdlib-only — reject any PR adding other packages or importing them from local code
+- **Local first**: cloud is a separate fallback flow — flag any PR that makes it a default, calls it from `PolarisLocalClient`, or mixes LAN and cloud delivery (`?create_command=false`)
+- **Cloud inheritance**: `PolarisCloudClient` inherits writes through `_send_command_with_retry` and reads through `get_status` — changes to those signatures or to `update_cu`/`update_zone` affect both flows; `tests/cloud/` must pass
+- **Cloud secrets**: verbose logging must not include the login body/reply (password, token)
+- After any code change, all tests must pass: `./scripts/run_tests.sh` (needs `pip install -e .`)
 - **Python 3.11+**: do not use `asyncio.iscoroutinefunction()` (deprecated 3.14) — use `inspect.iscoroutinefunction()`

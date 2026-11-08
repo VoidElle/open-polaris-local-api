@@ -15,7 +15,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - run: python -W all -m unittest discover -s tests -v
+      - run: python -m pip install -e .
+      - run: python -W all -m unittest discover -s tests -t . -v
 
   publish:
     needs: test

@@ -153,7 +153,7 @@ class PolarisZone:
             is_crono_mode=_parse_bool(data.get("is_crono", data.get("IsCronoMode"))),
             # local: "master_nr" (JSON_OFFLINE_COMMAND_MASTERNR), cloud: "IsMaster"
             is_master=_parse_int(data.get("master_nr", data.get("m_nr", 0))) != 0
-                      or _parse_bool(data.get("isMaster")),
+                      or _parse_bool(data.get("IsMaster", data.get("isMaster"))),
             # local: "u" (JSON_OFFLINE_COMMAND_UMD), cloud: "Umd"
             humidity=_parse_temp(data.get("u", data.get("Umd"))),
             # local: "u_set" (JSON_OFFLINE_COMMAND_UMDSET), cloud: "SetUmd"
@@ -255,8 +255,9 @@ class PolarisDevice:
             f_est=_parse_int(data.get("f_est", data.get("fe", data.get("FEst", 0)))),
             # ridotto: "ir", full: "ir_present"
             ir_present=_parse_int(data.get("ir_present", data.get("ir", data.get("IrPresent", 0)))),
-            # local: "err_cu" (JSON_OFFLINE_COMMAND_ERRCU), cloud: "NumErrors"
-            num_errors=_parse_int(data.get("err_cu", data.get("NumErrors", data.get("num_errors", 0)))),
+            # local: "err_cu" (JSON_OFFLINE_COMMAND_ERRCU), cloud GetCUState: "Errors" (bitmask),
+            # legacy GetHome: "NumErrors"
+            num_errors=_parse_int(data.get("err_cu", data.get("Errors", data.get("NumErrors", data.get("num_errors", 0))))),
         )
 
     @classmethod

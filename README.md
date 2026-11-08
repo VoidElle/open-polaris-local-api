@@ -1,4 +1,4 @@
-# 🌡️ Open Polaris Local API
+# 🌡️ Open Polaris Local API (+ Cloud fallback)
 
 > *Asynchronous Python library for Tecnosystemi Polaris 5X HVAC Control Unit devices*
 
@@ -29,7 +29,7 @@
 - Type-safe dataclasses — `PolarisDevice` and `PolarisZone`
 - Async context manager support
 - Comprehensive logging with optional verbose mode
-- Models parse local TCP replies and cloud-shaped (PascalCase) payloads; the client itself talks only local TCP (no cloud client)
+- Models parse local TCP replies and cloud (PascalCase) payloads
 
 ### 🔍 **Auto-Discovery**
 - **Subnet scan** — finds all Polaris devices on your LAN without knowing their IPs
@@ -40,6 +40,13 @@
 - CU-level: power, cooling mode, operating mode
 - Zone-level: temperature setpoint, on/off, chrono mode, fan speed, shutter
 - Human-readable error decoding (bitmask → error string list)
+
+### ☁️ **Cloud Fallback**
+- `PolarisCloudClient`: same API as `PolarisLocalClient`, over the official HTTPS cloud backend
+- Use it **only when the local TCP connection is not a suitable flow** (e.g. CU on another network or port 1235 unreachable). Prefer local TCP otherwise: it is faster, needs no internet or account, and applies commands immediately
+- Separate flow: the local client never calls the cloud, and the cloud client never touches the LAN
+- Extra dependencies (`aiohttp`, `cryptography`) are installed automatically
+- See [Cloud Client](#️-cloud-client)
 
 ---
 
@@ -163,6 +170,7 @@ async def control_cu():
 - [Zone Control](#️-zone-control)
 - [Data Models](#️-data-models)
 - [Error Handling](#-error-handling)
+- [Cloud Client](#️-cloud-client)
 - [Library Structure](#-library-structure)
 - [Official app protocol notes](docs/app/report.md): how the Tecnosystemi app talks to the CU, locally ([local-flows](docs/app/local-flows/README.md)) and through the cloud ([http-flows](docs/app/http-flows/README.md)), and how this library differs ([diff-app-api](docs/app/diff-app-api.md))
 
@@ -413,6 +421,7 @@ Both models accept both **local TCP** (snake_case, ridotto, full) and **cloud AP
 |---|---|---|
 | `TimeoutError` | `connect`, `async_update`, `get_status`, `get_zone_detail` | No reply after all retries |
 | `PolarisApiError` | `get_zone_detail` | `stato_zona` reply with `res` other than `1` |
+| `PolarisAuthError` | `PolarisCloudClient` (any call) | Cloud only: login rejected or token refused. Subclass of `PolarisApiError`, import from `open_polaris_local_api.cloud` |
 | `ValueError` | `update_zone`, `PolarisAutoDiscovery.discover` | `set_temp` unknown; invalid or non-IPv4 subnet |
 
 Write commands (`update_zone`, `update_cu` and the helpers built on them) do not raise when the device does not reply: they log a warning.
@@ -445,6 +454,64 @@ for zone in zones:
 
 ---
 
+## ☁️ Cloud Client
+
+> **Note:** use the cloud client only if the local TCP connection is not a suitable flow. Local TCP is the primary, recommended path: it works offline, needs no account, has lower latency and applies commands immediately. The cloud adds a dependency on the vendor backend, requires internet and credentials, and applies commands asynchronously.
+
+`PolarisCloudClient` subclasses `PolarisLocalClient`, so `async_update`, `update_cu`, `update_zone`, `turn_on`/`turn_off`, `set_cooling_mode`, `set_heating_mode`, `set_zone_temp`, `turn_zone_on`/`turn_zone_off` and `set_zone_serranda` are inherited and build the same `upd_cu` / `upd_zona` commands. Only the transport changes: TCP is replaced by `https://proair.azurewebsites.net`.
+
+```python
+from open_polaris_local_api.cloud import PolarisCloudClient
+
+async with PolarisCloudClient("me@x.com", "password", serial="SER123", pin="1234") as cloud:
+    device, zones = await cloud.async_update()     # GET GetCUState
+    await cloud.turn_on()                          # POST UpdateCUData
+    await cloud.set_zone_temp(zones[0], 21.0)      # POST UpdateZonaData
+```
+
+### Constructor Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| **`email`** ⭐ | `str` | *required* | Tecnosystemi account email |
+| **`password`** ⭐ | `str` | *required* | Tecnosystemi account password |
+| `serial` | `str` | `""` | CU serial; empty = login only (use `get_devices` + `use_device`) |
+| `pin` | `str` | `""` | CU PIN |
+| `name` | `str` | `""` | CU name sent with writes (defaults to the name from `GetCUState`) |
+| `android_id` | `str` | random | Stand-in for the app's ANDROID_ID (AES key seed, login `DeviceId`) |
+| `base_url` | `str` | `https://proair.azurewebsites.net` | Backend URL |
+| `timezone` | `str` | `"Europe@Rome"` | Java zone id with `/` replaced by `@` |
+| `timeout` | `float` | `15.0` | Per-request HTTP timeout (seconds) |
+| `retry_attempts` | `int` | `3` | Total attempts per request (including the first) |
+| `retry_delay` | `float` | `2.0` | Delay between retries (seconds) |
+| `verbose` | `bool` | `False` | Log every HTTP request/response (contains email and PIN; login request and reply excluded) |
+
+### Account Methods
+
+```python
+plants = await cloud.get_plants()       # plants with their devices (also stored in cloud.plants)
+devices = await cloud.get_devices()     # flat list of Polaris CUs (LVDV_Type 0), each with "PlantName"
+cloud.use_device("SER456", "5678")      # point the same session at another CU (the cloud does not return PINs)
+device, zones = await cloud.async_update()  # required after use_device, before any CU write
+```
+
+Differences vs local:
+- `connect()` logs in and, when `serial` is set, runs a first `async_update()` (a wrong PIN raises `PolarisApiError` here).
+- Writes are queued by the cloud; the CU applies them later (the app warns "within 10 minutes" for firmware < 4). Poll `async_update()` to see the result.
+- `get_zone_detail` raises `PolarisApiError` and `fetch_all_zone_details` returns `{}`: `stato_zona` is local-only, and `GetCUState` zones already carry `Fancoil`/`Serranda`.
+- `update_cu` (and `turn_on`/`turn_off`/mode helpers) raises `PolarisApiError` when no CU state is cached (e.g. right after `use_device`): `upd_cu` carries every CU field, so call `async_update()` first.
+- `device.ip` holds the CU's LAN IP reported by the cloud: use it to switch back to `PolarisLocalClient` when the LAN is reachable.
+- The session lasts about 1 h; the client logs in again after 55 min or on HTTP 401.
+- Errors: `PolarisAuthError` (subclass of `PolarisApiError`) for rejected credentials or a token still refused after re-login; `PolarisApiError` for a wrong PIN or another non-zero `ResCode`; `TimeoutError` when the backend does not reply. As in local mode, a write that gets no reply logs a warning instead of raising.
+- The Tecnosystemi backend allows one session per account at a time. While the client is logged in, the official app shows an alert and stops working.
+- Not implemented: schedules (`GetTW`/`UpdateTW`), CU clock (`UpdateCUDatetime`), restore (`SendRestoreCmd`), provisioning.
+
+> Unverified against the real backend: the server accepting a client-generated `DeviceId`, an empty `TokenPush`, and the exact `Timezone` format. Tested only against a fake backend built from the decompiled app.
+
+Protocol: [`docs/app/http-flows/`](docs/app/http-flows/). Cloud examples: [`examples/cloud/`](examples/cloud/), documented in [`examples/README.md`](examples/README.md).
+
+---
+
 ## 📦 Library Structure
 
 ```
@@ -454,20 +521,38 @@ open-polaris-local-api/
 │   └── run_tests.sh                 # Run the full test suite
 ├── examples/
 │   ├── README.md                    # Examples documentation
-│   ├── basic_control.py             # Connect, read status, control a single device
-│   ├── auto_discovery.py            # Discover devices then read their status
-│   ├── multi_device.py              # Concurrent control of multiple devices
-│   └── monitoring.py                # Continuous polling with error alerts
+│   ├── local/                       # Local TCP examples
+│   │   ├── basic_control.py         # Connect, read status, control a single device
+│   │   ├── auto_discovery.py        # Discover devices then read their status
+│   │   ├── multi_device.py          # Concurrent control of multiple devices
+│   │   └── monitoring.py            # Continuous polling with error alerts
+│   └── cloud/                       # Cloud examples (PolarisCloudClient)
+│       ├── _common.py               # Shared helpers
+│       ├── login.py                 # Login only
+│       ├── list_devices.py          # Polaris CUs of the account
+│       ├── basic_cloud.py           # Status, heating mode
+│       ├── simple_actions.py        # One-shot CLI actions
+│       ├── monitor_cloud.py         # Polling with diffs and backoff
+│       └── multi_device_cloud.py    # All CUs of the account
 ├── docs/app/                        # Official app protocol notes and app-vs-library diff
 ├── open_polaris_local_api/
 │   ├── __init__.py                  # exports: PolarisLocalClient, PolarisApiError, PolarisDevice, PolarisZone, PolarisAutoDiscovery
 │   ├── client.py                    # PolarisLocalClient, PolarisApiError
 │   ├── models.py                    # PolarisDevice, PolarisZone dataclasses + parsing helpers
-│   └── polaris_auto_discovery.py    # PolarisAutoDiscovery — subnet scanner
+│   ├── polaris_auto_discovery.py    # PolarisAutoDiscovery — subnet scanner
+│   └── cloud/
+│       ├── __init__.py              # exports: PolarisCloudClient, PolarisAuthError
+│       ├── polaris_cloud_client.py  # HTTPS transport, subclass of PolarisLocalClient
+│       ├── crypto.py                # PolarisCipher (password and rolling token)
+│       └── exceptions.py            # PolarisAuthError
 └── tests/
-    ├── test_models.py
-    ├── test_polaris_client.py
-    └── test_polaris_auto_discovery.py
+    ├── local/                       # Local TCP tests
+    │   ├── test_models.py
+    │   ├── test_polaris_client.py
+    │   └── test_polaris_auto_discovery.py
+    └── cloud/                       # Cloud tests (fake backend, no network)
+        ├── test_cloud_client.py
+        └── test_examples.py         # Runs examples/cloud scripts against the fake backend
 ```
 
 ---
@@ -508,8 +593,11 @@ Runs the full unit test suite with verbose output.
 ## 🧪 Testing
 
 ```bash
-./scripts/run_tests.sh
+pip install -e .          # aiohttp + cryptography, needed by tests/cloud
+./scripts/run_tests.sh    # or: python3 -W all -m unittest discover -s tests -t . -v
 ```
+
+Cloud tests run against a local fake backend; they never contact the real cloud.
 
 ---
 
@@ -518,7 +606,8 @@ Runs the full unit test suite with verbose output.
 - **Python 3.11+**
 - **asyncio** support
 - **Local network access** to the Polaris CU device (TCP port 1235)
-- No third-party dependencies — stdlib only
+- `aiohttp` and `cryptography` (installed automatically; used by the cloud client)
+- Cloud client (`PolarisCloudClient`): internet access and a Tecnosystemi cloud account, no local network access needed
 
 ---
 

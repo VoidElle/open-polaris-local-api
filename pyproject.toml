@@ -5,10 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "open-polaris-local-api"
 version = "1.2.5"
-description = "Async Python library for Tecnosystemi Polaris 5X HVAC Control Unit IoT devices"
+description = "Async Python library for Tecnosystemi Polaris 5X HVAC Control Unit IoT devices (local TCP, cloud fallback)"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11"
+dependencies = ["aiohttp>=3.9", "cryptography>=3.4"]
 keywords = ["polaris", "hvac", "iot", "asyncio", "home-assistant"]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -25,4 +26,4 @@ Source = "https://github.com/VoidElle/open-polaris-local-api"
 "Bug Tracker" = "https://github.com/VoidElle/open-polaris-local-api/issues"
 
 [tool.setuptools]
-packages = ["open_polaris_local_api"]
+packages = ["open_polaris_local_api", "open_polaris_local_api.cloud"]
