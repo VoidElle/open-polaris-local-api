@@ -64,7 +64,7 @@ Add to your integration's `manifest.json`:
 
 ```json
 "requirements": [
-  "open-polaris-local-api==2.0.0"
+  "open-polaris-local-api==2.0.1"
 ]
 ```
 
